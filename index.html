@@ -1,0 +1,105 @@
+// Navegação entre telas
+const links = document.querySelectorAll('[data-link]');
+const screens = document.querySelectorAll('.screen');
+function showScreen(id){
+  screens.forEach(s=> s.id === id ? s.classList.remove('hidden') : s.classList.add('hidden'));
+  window.scrollTo(0,0);
+}
+links.forEach(a=>{
+  a.addEventListener('click', e=>{
+    e.preventDefault();
+    const id = a.getAttribute('data-link');
+    showScreen(id);
+  });
+});
+// default
+showScreen('login');
+
+// Login / Signup (fictício)
+const showSignupBtn = document.getElementById('showSignup');
+const signupForm = document.getElementById('signupForm');
+const loginForm = document.getElementById('loginForm');
+const cancelSignup = document.getElementById('cancelSignup');
+showSignupBtn.addEventListener('click', ()=>{ signupForm.classList.remove('hidden'); loginForm.classList.add('hidden'); });
+cancelSignup.addEventListener('click', ()=>{ signupForm.classList.add('hidden'); loginForm.classList.remove('hidden'); });
+
+document.getElementById('createAccount').addEventListener('click', ()=>{
+  alert('Conta criada (simulação). Você será redirecionado para Entrar.');
+  signupForm.reset();
+  signupForm.classList.add('hidden');
+  loginForm.classList.remove('hidden');
+});
+
+// Denúncias
+const denunciaForm = document.getElementById('denunciaForm');
+const listaDenuncias = document.getElementById('listaDenuncias');
+const denunciaMsg = document.getElementById('denunciaMsg');
+
+let denuncias = [
+  {local:'Praia Azul - Ilha Verde', tipo:'Rede de arrasto', descricao:'Várias embarcações operando de madrugada', coords:[-23.45,-46.65]},
+  {local:'Recife do Norte', tipo:'Uso de explosivos', descricao:'Explosões e peixes mortos', coords:[-22.90,-43.17]},
+  {local:'Bacia Costeira Leste', tipo:'Rede de emalhar', descricao:'Grande presença de redes', coords:[-24.00,-45.30]}
+];
+
+function renderDenuncias(){
+  listaDenuncias.innerHTML = '';
+  denuncias.slice().reverse().forEach(d=>{
+    const li = document.createElement('li');
+    li.innerHTML = '<strong>'+d.local+'</strong> — '+d.tipo+'<br/><span class="muted">'+d.descricao+'</span>';
+    listaDenuncias.appendChild(li);
+  });
+}
+renderDenuncias();
+
+denunciaForm.addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const local = document.getElementById('local').value.trim();
+  const tipo = document.getElementById('tipo').value;
+  const descricao = document.getElementById('descricao').value.trim();
+  const coordsText = document.getElementById('coords').value.trim();
+  let coords = null;
+  if(coordsText){
+    const parts = coordsText.split(',').map(p=>parseFloat(p.trim()));
+    if(parts.length===2 && !isNaN(parts[0]) && !isNaN(parts[1])) coords = parts;
+  }
+  const novo = {local, tipo, descricao, coords};
+  // mantém apenas para demonstração (local)
+  denuncias.push(novo);
+  renderDenuncias();
+  denunciaMsg.textContent = 'Denúncia enviada (simulação). Obrigado!';
+  denunciaForm.reset();
+  // adiciona marcador no mapa se possível
+  if(novo.coords && window.addMarker) window.addMarker(novo.coords, novo.local, novo.tipo);
+});
+
+// Limpar
+document.getElementById('limparDenuncia').addEventListener('click', ()=>{ denunciaForm.reset(); denunciaMsg.textContent=''; });
+
+// MAPA (Leaflet)
+let map;
+function initMap(){
+  map = L.map('map').setView([-23.5, -46.6], 5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+  }).addTo(map);
+
+  denuncias.forEach(d=>{
+    if(d.coords){
+      L.marker(d.coords).addTo(map).bindPopup('<strong>'+d.local+'</strong><br/>'+d.tipo);
+    }
+  });
+}
+window.addMarker = function(coords, title, subtitle){
+  if(map){
+    L.marker(coords).addTo(map).bindPopup('<strong>'+title+'</strong><br/>'+subtitle).openPopup();
+  }
+}
+
+// Inicializa quando a aba Mapa é mostrada
+document.querySelectorAll('[data-link]').forEach(a=>{
+  a.addEventListener('click', ()=>{
+    if(a.getAttribute('data-link')==='mapa'){
+      setTimeout(()=>{ if(!map) initMap(); else map.invalidateSize(); }, 200);
+    }
+  });
+});
